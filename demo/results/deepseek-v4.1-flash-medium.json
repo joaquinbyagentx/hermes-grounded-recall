@@ -1,0 +1,445 @@
+{
+ "model": "deepseek-v4.1-flash",
+ "reasoning_effort": "medium",
+ "summary": {
+  "disabled": {
+   "attempted": 10,
+   "scored": 10,
+   "errors": 0,
+   "contains_expected_fact": 0,
+   "says_no_access": 9,
+   "cites_stale_fact": 1,
+   "mentions_stale_fact": 3,
+   "cites_proof_page": 1
+  },
+  "enabled": {
+   "attempted": 10,
+   "scored": 10,
+   "errors": 0,
+   "contains_expected_fact": 10,
+   "says_no_access": 0,
+   "cites_stale_fact": 0,
+   "mentions_stale_fact": 3,
+   "cites_proof_page": 9
+  }
+ },
+ "rows": [
+  {
+   "id": "controller-ip",
+   "mode": "disabled",
+   "question": "What is Acme Robotics' current production controller server IP? An old note says 192.0.2.18; is that still right?",
+   "answer": "I don't know Acme Robotics' current production controller IP — I have no access to their infrastructure records or any tools to check, so I can't confirm or update that note. Worth flagging that 192.0.2.18 is in the TEST-NET-1 documentation range (192.0.2.0/24), so it was likely a placeholder rather than a real production address.",
+   "elapsed_seconds": 5.475,
+   "score": {
+    "contains_expected_fact": false,
+    "matched_fact_groups": 0,
+    "expected_fact_groups": 1,
+    "says_no_access": true,
+    "no_access_phrases": [
+     "I don't know",
+     "I have no access"
+    ],
+    "mentions_stale_fact": true,
+    "cites_stale_fact": false,
+    "stale_mentions": [
+     "192.0.2.18"
+    ],
+    "stale_assertions": [],
+    "cites_proof_page": false
+   }
+  },
+  {
+   "id": "controller-ip",
+   "mode": "enabled",
+   "question": "What is Acme Robotics' current production controller server IP? An old note says 192.0.2.18; is that still right?",
+   "answer": "No — the current production controller server IP is 203.0.113.42 (hostname controller.acme.example), per INFRA.md and MIGRATION-2026-11.md; the migration completed 2026-11-03 and supersedes the legacy note, so 192.0.2.18 is outdated.",
+   "elapsed_seconds": 5.526,
+   "score": {
+    "contains_expected_fact": true,
+    "matched_fact_groups": 1,
+    "expected_fact_groups": 1,
+    "says_no_access": false,
+    "no_access_phrases": [],
+    "mentions_stale_fact": true,
+    "cites_stale_fact": false,
+    "stale_mentions": [
+     "192.0.2.18"
+    ],
+    "stale_assertions": [],
+    "cites_proof_page": true
+   }
+  },
+  {
+   "id": "hosting-vendor",
+   "mode": "disabled",
+   "question": "Which hosting vendor runs Acme Robotics' production controller now? I remember Tin Harbor Hosting.",
+   "answer": "I don't know — I have no information about Acme Robotics' production controller or its hosting vendor, so I can't confirm or correct your recollection of Tin Harbor Hosting. You'd need to check their infrastructure docs or ask someone on the team.",
+   "elapsed_seconds": 5.514,
+   "score": {
+    "contains_expected_fact": false,
+    "matched_fact_groups": 0,
+    "expected_fact_groups": 1,
+    "says_no_access": true,
+    "no_access_phrases": [
+     "I don't know"
+    ],
+    "mentions_stale_fact": true,
+    "cites_stale_fact": false,
+    "stale_mentions": [
+     "Tin Harbor Hosting"
+    ],
+    "stale_assertions": [],
+    "cites_proof_page": false
+   }
+  },
+  {
+   "id": "hosting-vendor",
+   "mode": "enabled",
+   "question": "Which hosting vendor runs Acme Robotics' production controller now? I remember Tin Harbor Hosting.",
+   "answer": "Nimbus Forge. The records show a completed migration on 2026-11-03, which explicitly supersedes the legacy setup notes (where Tin Harbor would have been).",
+   "elapsed_seconds": 6.351,
+   "score": {
+    "contains_expected_fact": true,
+    "matched_fact_groups": 1,
+    "expected_fact_groups": 1,
+    "says_no_access": false,
+    "no_access_phrases": [],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": false
+   }
+  },
+  {
+   "id": "db-title",
+   "mode": "disabled",
+   "question": "Can you find the exact secret-manager item title in Acme Robotics' infra inventory for the production database read-only credential? Do not retrieve a password.",
+   "answer": "I don't know — I have no access to Acme Robotics' infra inventory or secret manager, and no tools are available in this session to look it up. You'd need to check the inventory directly (or give me access) to get the exact item title.",
+   "elapsed_seconds": 4.729,
+   "score": {
+    "contains_expected_fact": false,
+    "matched_fact_groups": 0,
+    "expected_fact_groups": 2,
+    "says_no_access": true,
+    "no_access_phrases": [
+     "I don't know",
+     "I have no access"
+    ],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": false
+   }
+  },
+  {
+   "id": "db-title",
+   "mode": "enabled",
+   "question": "Can you find the exact secret-manager item title in Acme Robotics' infra inventory for the production database read-only credential? Do not retrieve a password.",
+   "answer": "The item title is infra/db/prod-readonly, per sample-vault/ACCESS.md line 6. To be clear, that's title discovery only — it implies no authentication, read permission, or database access, and I won't retrieve any value.",
+   "elapsed_seconds": 4.958,
+   "score": {
+    "contains_expected_fact": true,
+    "matched_fact_groups": 2,
+    "expected_fact_groups": 2,
+    "says_no_access": false,
+    "no_access_phrases": [],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": true
+   }
+  },
+  {
+   "id": "backup-policy",
+   "mode": "disabled",
+   "question": "Where are Acme Robotics' database backups stored and how many days are retained?",
+   "answer": "I don't know — I have no information in this conversation about Acme Robotics' infrastructure, and no tools available to look it up. You'd need to check their internal documentation or ask their ops team.",
+   "elapsed_seconds": 3.508,
+   "score": {
+    "contains_expected_fact": false,
+    "matched_fact_groups": 0,
+    "expected_fact_groups": 2,
+    "says_no_access": true,
+    "no_access_phrases": [
+     "I don't know"
+    ],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": false
+   }
+  },
+  {
+   "id": "backup-policy",
+   "mode": "enabled",
+   "question": "Where are Acme Robotics' database backups stored and how many days are retained?",
+   "answer": "Database backups are stored in the object-storage bucket acme-robotics-northstar via the Northstar Archive backup service, and retention is 35 days. Source: sample-vault/BACKUPS.md (dated 2026-11-05).",
+   "elapsed_seconds": 6.976,
+   "score": {
+    "contains_expected_fact": true,
+    "matched_fact_groups": 2,
+    "expected_fact_groups": 2,
+    "says_no_access": false,
+    "no_access_phrases": [],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": true
+   }
+  },
+  {
+   "id": "incident-owner",
+   "mode": "disabled",
+   "question": "Who is Acme Robotics' production incident commander and what is the acknowledgement target?",
+   "answer": "I don't know — I have no information about Acme Robotics' production incident commander or its acknowledgement target, and no tools available to look it up.",
+   "elapsed_seconds": 3.634,
+   "score": {
+    "contains_expected_fact": false,
+    "matched_fact_groups": 0,
+    "expected_fact_groups": 2,
+    "says_no_access": true,
+    "no_access_phrases": [
+     "I don't know"
+    ],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": false
+   }
+  },
+  {
+   "id": "incident-owner",
+   "mode": "enabled",
+   "question": "Who is Acme Robotics' production incident commander and what is the acknowledgement target?",
+   "answer": "Mira Chen is the production incident commander, and the acknowledgement target is 20 minutes (escalating to the operations owner if missed), per sample-vault/SUPPORT.md.",
+   "elapsed_seconds": 5.098,
+   "score": {
+    "contains_expected_fact": true,
+    "matched_fact_groups": 2,
+    "expected_fact_groups": 2,
+    "says_no_access": false,
+    "no_access_phrases": [],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": true
+   }
+  },
+  {
+   "id": "billing-vendor",
+   "mode": "disabled",
+   "question": "Does Acme Robotics still use Pocket Ledger for payments, and who owns billing?",
+   "answer": "I don't know — I have no information about Acme Robotics' payment stack or its billing ownership, and no tools available here to look it up. You'd need to check with someone at Acme Robotics directly.",
+   "elapsed_seconds": 3.969,
+   "score": {
+    "contains_expected_fact": false,
+    "matched_fact_groups": 0,
+    "expected_fact_groups": 2,
+    "says_no_access": true,
+    "no_access_phrases": [
+     "I don't know"
+    ],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": false
+   }
+  },
+  {
+   "id": "billing-vendor",
+   "mode": "enabled",
+   "question": "Does Acme Robotics still use Pocket Ledger for payments, and who owns billing?",
+   "answer": "No — as of 2026-11-03 Acme Robotics switched its payment processor from Pocket Ledger to CedarPay (per sample-vault/BILLING.md), and billing is now owned by Eli Stone.",
+   "elapsed_seconds": 4.128,
+   "score": {
+    "contains_expected_fact": true,
+    "matched_fact_groups": 2,
+    "expected_fact_groups": 2,
+    "says_no_access": false,
+    "no_access_phrases": [],
+    "mentions_stale_fact": true,
+    "cites_stale_fact": false,
+    "stale_mentions": [
+     "Pocket Ledger"
+    ],
+    "stale_assertions": [],
+    "cites_proof_page": true
+   }
+  },
+  {
+   "id": "pilot-date",
+   "mode": "disabled",
+   "question": "Is Acme Robotics' warehouse pilot still scheduled for November 10, 2026? Give the approved start date.",
+   "answer": "I don't have any information about Acme Robotics or a warehouse pilot, so I can't confirm the November 10, 2026 date or give you an approved start date. You'd need to check the project documentation or ask whoever owns the pilot.",
+   "elapsed_seconds": 4.205,
+   "score": {
+    "contains_expected_fact": false,
+    "matched_fact_groups": 0,
+    "expected_fact_groups": 1,
+    "says_no_access": false,
+    "no_access_phrases": [],
+    "mentions_stale_fact": true,
+    "cites_stale_fact": true,
+    "stale_mentions": [
+     "November 10, 2026",
+     "November 10"
+    ],
+    "stale_assertions": [
+     "November 10, 2026",
+     "November 10"
+    ],
+    "cites_proof_page": false
+   }
+  },
+  {
+   "id": "pilot-date",
+   "mode": "enabled",
+   "question": "Is Acme Robotics' warehouse pilot still scheduled for November 10, 2026? Give the approved start date.",
+   "answer": "No — the warehouse pilot has been rescheduled. The approved start date is November 18, 2026, per ROADMAP.md (current as of 2026-11-05).",
+   "elapsed_seconds": 4.744,
+   "score": {
+    "contains_expected_fact": true,
+    "matched_fact_groups": 1,
+    "expected_fact_groups": 1,
+    "says_no_access": false,
+    "no_access_phrases": [],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": true
+   }
+  },
+  {
+   "id": "rollback-review",
+   "mode": "disabled",
+   "question": "If Acme Robotics' new controller fails, may I automatically restore the legacy server? What review is required?",
+   "answer": "I don't know — I have no information about Acme Robotics' systems, failover policy, or change-management process, and no tools are available to look it up. Whether you may automatically restore the legacy server, and what review that requires, depends on their runbook and change-control rules; check with the controller's owning team or their operations documentation.",
+   "elapsed_seconds": 12.439,
+   "score": {
+    "contains_expected_fact": false,
+    "matched_fact_groups": 0,
+    "expected_fact_groups": 3,
+    "says_no_access": true,
+    "no_access_phrases": [
+     "I don't know"
+    ],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": false
+   }
+  },
+  {
+   "id": "rollback-review",
+   "mode": "enabled",
+   "question": "If Acme Robotics' new controller fails, may I automatically restore the legacy server? What review is required?",
+   "answer": "No — the migration record explicitly says not to automatically restore the legacy address if the new controller is unavailable. Rollback instead requires two-person review by the operations owner and the incident commander (and production changes generally need human review by the operations owner before deployment).\n\nSource: sample-vault/MIGRATION-2026-11.md:10 and sample-vault/INFRA.md:11.",
+   "elapsed_seconds": 14.279,
+   "score": {
+    "contains_expected_fact": true,
+    "matched_fact_groups": 3,
+    "expected_fact_groups": 3,
+    "says_no_access": false,
+    "no_access_phrases": [],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": true
+   }
+  },
+  {
+   "id": "historical-ip",
+   "mode": "disabled",
+   "question": "For the historical incident report, what controller IP does LEGACY-INFRA.md record before the November 3 migration? This is a history question, not a request for today's address.",
+   "answer": "I don't know. I have no access to LEGACY-INFRA.md in this session and no tools to read it, so I can't tell you what controller IP it records before the November 3 migration.",
+   "elapsed_seconds": 12.859,
+   "score": {
+    "contains_expected_fact": false,
+    "matched_fact_groups": 1,
+    "expected_fact_groups": 2,
+    "says_no_access": true,
+    "no_access_phrases": [
+     "I don't know",
+     "I have no access"
+    ],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": true
+   }
+  },
+  {
+   "id": "historical-ip",
+   "mode": "enabled",
+   "question": "For the historical incident report, what controller IP does LEGACY-INFRA.md record before the November 3 migration? This is a history question, not a request for today's address.",
+   "answer": "LEGACY-INFRA.md records the former production controller server IP as 192.0.2.18 (it was superseded on 2026-11-03 by the migration).",
+   "elapsed_seconds": 7.736,
+   "score": {
+    "contains_expected_fact": true,
+    "matched_fact_groups": 2,
+    "expected_fact_groups": 2,
+    "says_no_access": false,
+    "no_access_phrases": [],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": true
+   }
+  },
+  {
+   "id": "gripper-uncertainty",
+   "mode": "disabled",
+   "question": "Is Acme Robotics' soft gripper prototype approved, and on what date will it launch?",
+   "answer": "I don't know. I have no information about Acme Robotics or its soft gripper prototype, so I can't confirm whether it's approved or when it will launch.",
+   "elapsed_seconds": 4.218,
+   "score": {
+    "contains_expected_fact": false,
+    "matched_fact_groups": 0,
+    "expected_fact_groups": 3,
+    "says_no_access": true,
+    "no_access_phrases": [
+     "I don't know"
+    ],
+    "mentions_stale_fact": false,
+    "cites_stale_fact": false,
+    "stale_mentions": [],
+    "stale_assertions": [],
+    "cites_proof_page": false
+   }
+  },
+  {
+   "id": "gripper-uncertainty",
+   "mode": "enabled",
+   "question": "Is Acme Robotics' soft gripper prototype approved, and on what date will it launch?",
+   "answer": "No — the soft gripper prototype is only a proposal and is explicitly not approved. There is no approved launch date for it, and the warehouse pilot date of November 18, 2026 applies to that separate pilot, not the gripper. (Source: sample-vault/EXPERIMENTS.md.)",
+   "elapsed_seconds": 6.695,
+   "score": {
+    "contains_expected_fact": true,
+    "matched_fact_groups": 3,
+    "expected_fact_groups": 3,
+    "says_no_access": false,
+    "no_access_phrases": [],
+    "mentions_stale_fact": true,
+    "cites_stale_fact": false,
+    "stale_mentions": [
+     "November 18, 2026"
+    ],
+    "stale_assertions": [],
+    "cites_proof_page": true
+   }
+  }
+ ]
+}

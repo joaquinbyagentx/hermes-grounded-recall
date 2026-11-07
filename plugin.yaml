@@ -1,0 +1,52 @@
+name: grounded-recall
+version: 0.1.0
+manifest_version: 2
+api_version: 1
+description: >-
+  Grounds every turn in what is already written down: searches your markdown notes,
+  secret-manager item titles (never values) and this profile's recent sessions before
+  the model answers, injects freshness-labelled evidence, and adds a "search before you
+  say no" rule. Lexical by default (no models, no servers); optional semantic re-rank.
+author: grounded-recall contributors
+license: MIT
+tags: [memory, recall, rag, obsidian, markdown, grounding, small-models]
+requires_hermes: ">=0.22.0"
+provides_hooks:
+  - pre_llm_call
+config_schema:
+  enabled: {type: bool, default: true, label: "Enabled"}
+  roots: {type: list, default: [], label: "Knowledge roots", description: "Markdown folders to search (e.g. an Obsidian vault). ~ and $VARS are expanded. Empty = notes search off."}
+  include_globs: {type: list, default: ["*.md", "*.markdown"], description: "File globs to search"}
+  exclude_globs: {type: list, default: [], description: "Globs to skip (ripgrep syntax, e.g. '**/Archive/**')"}
+  use_ripgrep: {type: bool, default: true, description: "Use rg when installed; otherwise a pure-Python scan"}
+  budget: {type: str, choices: [compact, normal, full], default: normal, description: "Size preset. compact ≈ 1,200 chars / 3 hits / 600-char key facts for 8k–32k context models; full for large-context models. Explicit keys override the preset."}
+  key_facts_file: {type: str, default: "", label: "Key-facts file", description: "Markdown file added to the system prompt once per session"}
+  key_facts_heading: {type: str, default: "", description: "Only include the section under the first heading containing this text"}
+  key_facts_max_chars: {type: int, default: 3000, description: "Cap for the key-facts body (preset-driven)"}
+  rule_enabled: {type: bool, default: true, description: "Add the 'search before you say no' rule"}
+  rule_text: {type: str, default: "", description: "Replace the default rule text"}
+  max_context_chars: {type: int, default: 3500, description: "Hard cap for the per-turn block (preset-driven)"}
+  max_hits: {type: int, default: 8}
+  max_hits_per_file: {type: int, default: 2}
+  excerpt_chars: {type: int, default: 320}
+  max_keywords: {type: int, default: 10}
+  min_keyword_length: {type: int, default: 4}
+  time_budget_ms: {type: int, default: 1200, description: "Search budget per turn; the hook never blocks more than 1.5 s"}
+  current_max_age_days: {type: int, default: 7, description: "A dated 'Current state' label older than this is shown as UNVERIFIED"}
+  sessions_enabled: {type: bool, default: true, description: "Search this profile's past sessions"}
+  sessions_lookback_days: {type: int, default: 7}
+  max_session_hits: {type: int, default: 3}
+  secret_titles_file: {type: str, default: "", description: "JSON list of item titles (or objects; only title/name is read)"}
+  secret_titles_command: {type: list, default: [], description: "argv that prints titles as JSON or one per line; run in the background, cached"}
+  secret_titles_refresh_hours: {type: float, default: 24}
+  secret_titles_command_timeout_s: {type: float, default: 20}
+  max_secret_hits: {type: int, default: 8}
+  secret_manager_label: {type: str, default: "secret manager"}
+  semantic_enabled: {type: bool, default: false, description: "Optional re-rank via an OpenAI-compatible /embeddings endpoint. Off by default."}
+  semantic_url: {type: str, default: "", description: "Base URL, e.g. http://localhost:11434/v1 (Ollama), LM Studio, llama.cpp server or a cloud API"}
+  semantic_model: {type: str, default: "", description: "Embedding model id; a tiny (~0.6B) embedding model is enough"}
+  semantic_api_key_env: {type: str, default: "", description: "Name of the env var holding the API key (cloud only)"}
+  semantic_timeout_ms: {type: int, default: 800, description: "Capped at 1500; on timeout/error lexical order is kept"}
+  semantic_candidates: {type: int, default: 40}
+  audit_log: {type: bool, default: true, description: "Append to $HERMES_HOME/state/grounded-recall/<profile>.jsonl"}
+  audit_max_bytes: {type: int, default: 5000000}

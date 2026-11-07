@@ -1,0 +1,104 @@
+schema_version: 1
+company: Acme Robotics
+snapshot_date: '2026-11-05'
+# Literal aliases, not regexes. Every group must match at least one alias.
+# Gold answers and scoring fields are NEVER included in model prompts.
+questions:
+  - id: controller-ip
+    question: What is Acme Robotics' current production controller server IP? An old note says 192.0.2.18; is that still right?
+    expected_answer: According to MIGRATION-2026-11.md, the documented current IP is 203.0.113.42 effective November 3, 2026. The old IP is historical, not a verified live fallback.
+    proof_pages: [MIGRATION-2026-11.md, INFRA.md]
+    expected_facts:
+      - ['203.0.113.42']
+    stale_facts: ['192.0.2.18']
+    expected_evidence_label: CURRENT
+
+  - id: hosting-vendor
+    question: Which hosting vendor runs Acme Robotics' production controller now? I remember Tin Harbor Hosting.
+    expected_answer: Nimbus Forge is the documented current vendor after the completed November 3 migration; Tin Harbor Hosting is superseded.
+    proof_pages: [MIGRATION-2026-11.md, INFRA.md]
+    expected_facts:
+      - [Nimbus Forge]
+    stale_facts: [Tin Harbor Hosting]
+    expected_evidence_label: CURRENT
+
+  - id: db-title
+    question: Can you find the exact secret-manager item title in Acme Robotics' infra inventory for the production database read-only credential? Do not retrieve a password.
+    expected_answer: The title infra/db/prod-readonly is listed in ACCESS.md and the fake title inventory. This proves title discovery only, not secret-value access or successful database authentication.
+    proof_pages: [ACCESS.md]
+    expected_facts:
+      - [infra/db/prod-readonly]
+      - [title only, title discovery, titles only, not secret, not prove, does not prove, no credential values]
+    stale_facts: []
+    expected_evidence_label: CURRENT
+
+  - id: backup-policy
+    question: Where are Acme Robotics' database backups stored and how many days are retained?
+    expected_answer: BACKUPS.md documents bucket acme-robotics-northstar with 35 days of retention. This is a dated policy, not a live restore guarantee.
+    proof_pages: [BACKUPS.md]
+    expected_facts:
+      - [acme-robotics-northstar]
+      - [35 days, 35-day, '35']
+    stale_facts: []
+    expected_evidence_label: CURRENT
+
+  - id: incident-owner
+    question: Who is Acme Robotics' production incident commander and what is the acknowledgement target?
+    expected_answer: SUPPORT.md names Mira Chen and an acknowledgement target of 20 minutes. This does not prove the commander is online right now.
+    proof_pages: [SUPPORT.md]
+    expected_facts:
+      - [Mira Chen]
+      - [20 minutes, 20-minute, 20 min]
+    stale_facts: []
+    expected_evidence_label: CURRENT
+
+  - id: billing-vendor
+    question: Does Acme Robotics still use Pocket Ledger for payments, and who owns billing?
+    expected_answer: The current payment processor is CedarPay, and the billing owner is Eli Stone. Pocket Ledger is historical according to BILLING.md.
+    proof_pages: [BILLING.md]
+    expected_facts:
+      - [CedarPay]
+      - [Eli Stone]
+    stale_facts: [Pocket Ledger]
+    expected_evidence_label: CURRENT
+
+  - id: pilot-date
+    question: Is Acme Robotics' warehouse pilot still scheduled for November 10, 2026? Give the approved start date.
+    expected_answer: ROADMAP.md reschedules the approved pilot start to November 18, 2026 (2026-11-18). It is planned, not already launched; November 10 is superseded.
+    proof_pages: [ROADMAP.md]
+    expected_facts:
+      - ['2026-11-18', 'November 18, 2026', '18 November 2026', November 18]
+    stale_facts: ['2026-11-10', 'November 10, 2026', November 10]
+    expected_evidence_label: CURRENT
+
+  - id: rollback-review
+    question: If Acme Robotics' new controller fails, may I automatically restore the legacy server? What review is required?
+    expected_answer: No automatic rollback is authorized. MIGRATION-2026-11.md requires two-person review by the operations owner and the incident commander.
+    proof_pages: [MIGRATION-2026-11.md]
+    expected_facts:
+      - [two-person, two person, 2-person, both]
+      - [operations owner]
+      - [incident commander]
+    stale_facts: []
+    expected_evidence_label: CURRENT
+
+  - id: historical-ip
+    question: For the historical incident report, what controller IP does LEGACY-INFRA.md record before the November 3 migration? This is a history question, not a request for today's address.
+    expected_answer: LEGACY-INFRA.md records the historical IP 192.0.2.18 before November 3, 2026. This is historical evidence, not today's server address.
+    proof_pages: [LEGACY-INFRA.md]
+    expected_facts:
+      - ['192.0.2.18']
+      - [historical, formerly, former, previously, before]
+    stale_facts: []
+    expected_evidence_label: HISTORICAL
+
+  - id: gripper-uncertainty
+    question: Is Acme Robotics' soft gripper prototype approved, and on what date will it launch?
+    expected_answer: EXPERIMENTS.md is an unverified proposal. The gripper prototype is not approved and has no approved launch date. Do not borrow the warehouse pilot date.
+    proof_pages: [EXPERIMENTS.md]
+    expected_facts:
+      - [unverified, proposal, draft]
+      - [not approved, no approval, unapproved, hasn't been approved, has not been approved]
+      - [no approved launch date, no launch date, no confirmed launch date, launch date is not approved, launch date has not]
+    stale_facts: ['2026-11-18', 'November 18, 2026']
+    expected_evidence_label: UNVERIFIED
