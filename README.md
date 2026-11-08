@@ -17,7 +17,6 @@ It also adds one standing rule: **search before you say "it doesn't exist", "I
 have no access" or "I don't know".** Every injection is logged per profile, so you
 can see what the model was shown on any given turn.
 
-![demo](docs/demo.gif) <!-- TODO: replace with the real demo GIF before pinning the catalog SHA -->
 
 ## Why
 
@@ -53,7 +52,7 @@ in their own backend and recall them later. `grounded-recall` does different thi
 ## Install
 
 ```bash
-hermes plugins install <owner>/hermes-grounded-recall   # TODO: real owner/repo
+hermes plugins install joaquinbyagentx/hermes-grounded-recall
 hermes plugins enable grounded-recall
 ```
 
