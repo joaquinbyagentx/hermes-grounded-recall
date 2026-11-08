@@ -138,7 +138,6 @@ def test_relative_include_glob(tmp_path, backend, request):
     assert lookup(tmp_path, use_rg=backend, include=["**/public/*.md"])
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT: fallback follows file symlink outside authorized root")
 def test_python_symlink_cannot_escape_root(tmp_path):
     root = tmp_path / "vault"
     root.mkdir()
@@ -164,7 +163,6 @@ def test_compact_all_sources_stay_bounded(tmp_path):
 
 @pytest.mark.parametrize("text", ["[", '[{"title":"Database","password":"orchidplan_SYNTHETIC"},',
                                    '{"items":[{"name":"Database","value":"orchidplan_SYNTHETIC"}'])
-@pytest.mark.xfail(strict=True, reason="AUDIT: invalid JSON falls back to plaintext, leaking extra fields")
 def test_malformed_title_json_fails_closed(text):
     assert secret_titles.titles_from_text(text) == []
 
@@ -292,7 +290,6 @@ def test_semantic_minimum_timeout_skips_network_but_keeps_results(tmp_path):
     assert actual == baseline and requests == []
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT: recall thread drops caller ContextVars")
 def test_recall_worker_preserves_callers_context(tmp_path, monkeypatch):
     from contextvars import ContextVar
     import grounded_recall.core as core
@@ -312,7 +309,6 @@ def test_recall_worker_preserves_callers_context(tmp_path, monkeypatch):
     assert observed == ["caller-profile"]
 
 
-@pytest.mark.xfail(strict=True, reason="AUDIT: profile_name takes ancestor profile instead of active leaf")
 def test_nested_profile_name_uses_active_home(tmp_path):
     home = tmp_path / "profiles" / "outer" / "scratch" / "profiles" / "inner"
     assert sessions.profile_name(home) == "inner"

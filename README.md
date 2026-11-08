@@ -85,6 +85,10 @@ plugins:
 
 Every key can also be set as an env var (`GROUNDED_RECALL_<KEY>`); the full schema
 with defaults is in `plugin.yaml`. With zero config it only searches recent sessions.
+In routed/multiplexed turns, environment settings and path variables come only
+from the active profile's validated scope, not the launch process. `$HERMES_HOME`
+and `${HERMES_HOME}` always mean the active profile. An unavailable or mismatched
+scope fails closed. Explicit configuration still takes precedence.
 
 ### Small machines and small models
 
@@ -94,6 +98,8 @@ so 3-8B local models with 8k-32k context are not flooded. Semantic re-ranking is
 **off** by default; if you enable it, point it at any OpenAI-compatible `/embeddings`
 endpoint (Ollama, LM Studio, llama.cpp server or a cloud API). A tiny (~0.6B)
 embedding model is enough, and on timeout or error it silently keeps the lexical order.
+HTTP redirects are not followed (including same-origin redirects); configure the
+final endpoint directly. A redirect or credential-scope failure keeps lexical recall.
 
 ### Bring your own secret manager (optional, titles only)
 
@@ -103,6 +109,13 @@ The plugin is not tied to any vendor. Give it either a JSON file of titles
 (`secret_titles_command`). Only the `title`/`name` field is ever read, the command
 runs in a background thread, and the result is cached. Use a command that never
 prints values in the first place:
+
+Commands and their old cached output are disabled in routed/multiplexed turns,
+or when Hermes cannot establish the execution scope: a vendor CLI's login cannot
+be inferred safely from Hermes' per-profile secrets. Use an explicit
+`secret_titles_file` for those turns. Single-profile commands retain their existing
+environment and run with a snapshot of the caller's context. JSON-looking output,
+including UTF-8 BOM-prefixed output, is rejected if malformed, never read as plaintext.
 
 | Manager | `secret_titles_command` |
 | --- | --- |
@@ -133,18 +146,28 @@ Rule: search these sources and your tools before saying it doesn't exist, you ha
 - **Hard caps.** Hit count, characters per hit and total characters are bounded. The
   default total stays well under Hermes's 10,000-character hook spill limit.
 - **Time-boxed.** The whole search runs under one timeout. A slow disk or a missing
-  source yields an empty injection, and the turn is never blocked.
+  source can yield an empty injection. The worker wait is capped at 1.5 seconds;
+  configuration and audit filesystem I/O are not a hard real-time guarantee. An
+  engine does not start another worker while a timed-out worker is still running.
 - **Read-only.** It never writes to your notes, secret manager or sessions. Its only
-  write is its own audit log under the active Hermes home.
+  writes are its audit log and optional title cache under the active Hermes home.
 - **Local only.** No telemetry. The only network call is the optional embeddings endpoint, off by default.
 - **Profile-scoped.** Session search and the audit log use the active profile only.
+- **Contained note reads.** Note files and directories below configured roots are
+  opened relative to pinned directory descriptors without following symlinks,
+  including weighting/freshness rereads. Special files are skipped. Explicit
+  key-facts/title files also reject file symlinks. Configured roots (and the parent
+  of an explicit source file) are trusted administrator input and may themselves
+  be aliases. This is not a filesystem sandbox against malicious root configuration,
+  hard links, mount changes, or direct modification of authorized file contents.
+  These reads fail closed on platforms without `dir_fd`/`O_NOFOLLOW` support.
 
 ### Disclosure (catalog rule 13)
 
 - Reads files outside the plugin's own data: the folders you list in `knowledge_dirs`
   and the active profile's session store.
-- Optional (off by default): runs the secret-manager command *you* configure to list item titles; values are never read.
-- Writes one audit log file under the active `HERMES_HOME`.
+- Optional (off by default): runs the secret-manager command *you* configure to list item titles, only in single-profile execution with a verifiable host scope.
+- Writes an audit log and, for a configured command, a title cache under the active `HERMES_HOME`.
 - No telemetry, no stored credentials. Network only if you enable semantic re-rank.
 
 ## Audit log
