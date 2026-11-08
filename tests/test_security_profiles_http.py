@@ -329,3 +329,38 @@ def test_json_titles_with_bom_never_inject_other_fields(tmp_path, suffix):
         assert secret_titles.read_titles_file(path) == ["orchidplan"]
     else:
         assert result is None
+
+
+def test_timed_out_worker_keeps_its_scope_and_does_not_accumulate(tmp_path, monkeypatch, host):
+    import grounded_recall.core as core
+    entered = threading.Event()
+    release = threading.Event()
+    calls = []
+    homes = []
+    def slow_search(*_args, **_kwargs):
+        calls.append(True)
+        entered.set()
+        assert release.wait(3)
+        homes.append(sessions.hermes_home())
+        return []
+    monkeypatch.setattr(core, "search_roots", slow_search)
+    a, b = tmp_path / "profiles/alpha", tmp_path / "profiles/beta"
+    monkeypatch.setenv("HERMES_HOME", str(a))
+    e = engine(**vault_config(tmp_path), time_budget_ms=150)
+    original_threads = set(threading.enumerate())
+    try:
+        with routed(host, b, secrets={}):
+            assert e.recall(user_message="orchidplan") is None
+            assert entered.is_set() and len(calls) == 1
+        assert e.recall(user_message="orchidplan") is None
+        assert len(calls) == 1
+    finally:
+        release.set()
+        for worker in set(threading.enumerate()) - original_threads:
+            if worker.name == "grounded-recall":
+                worker.join(2)
+                assert not worker.is_alive()
+    assert homes == [b]  # original context survives even after the caller resets it
+    result = e.recall(user_message="orchidplan")
+    assert result is not None and "No automatic matches" in result["context"]
+    assert calls == [True, True] and homes == [b, a]

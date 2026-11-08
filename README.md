@@ -138,9 +138,10 @@ Rule: search these sources and your tools before saying it doesn't exist, you ha
 
 ## Safety
 
-- **Titles only, never values.** If secret-title search is on, the plugin lists item
-  *titles* and nothing else. It never reads, prints, logs or injects a secret value.
-  It is off by default.
+- **Titles only.** Optional commands/files must supply item titles, not values.
+  Valid JSON selects only `title`/`name` fields; malformed JSON fails closed.
+  Plaintext title input is not a generic secret-redaction service. This source is
+  off by default.
 - **Evidence, not instructions.** The block is clearly marked as quoted data. Note
   content is never treated as a command, and quotes are trimmed to short snippets.
 - **Hard caps.** Hit count, characters per hit and total characters are bounded. The
