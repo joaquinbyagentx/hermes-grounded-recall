@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from grounded_recall import render, search, secret_titles
+from grounded_recall import audit, render, search, secret_titles
 from grounded_recall.config import load_settings
 from grounded_recall.core import GroundedRecall
 from grounded_recall.freshness import CURRENT, HISTORICAL, UNVERIFIED, label_text, parse_date
@@ -176,7 +176,7 @@ def test_audit_log_written(tmp_path, isolated_home):
     out = engine({"roots": [str(v)], "sessions_enabled": False}).recall(session_id="abc",
                                                                          user_message="billing webhooks")
     assert out
-    log = isolated_home / "state" / "grounded-recall" / "default.jsonl"
+    log = audit.audit_path(isolated_home)
     rec = json.loads(log.read_text().splitlines()[-1])
     assert rec["session"] == "abc" and rec["notes"] and rec["semantic"] == "off"
 
@@ -307,7 +307,7 @@ def test_semantic_endpoint_down_falls_back_fast(tmp_path, isolated_home):
         user_message="billing webhooks")
     assert time.monotonic() - t0 < 1.5
     assert out and "staging" in out["context"]                   # lexical results kept
-    rec = json.loads((isolated_home / "state/grounded-recall/default.jsonl").read_text().splitlines()[-1])
+    rec = json.loads(audit.audit_path(isolated_home).read_text().splitlines()[-1])
     assert rec["semantic"] == "fallback"
 
 
@@ -357,7 +357,7 @@ def test_semantic_rerank_used_when_endpoint_works(tmp_path, isolated_home):
                       "semantic_url": f"http://127.0.0.1:{srv.server_port}/v1", "semantic_model": "m",
                       "sessions_enabled": False}).recall(user_message="billing webhooks")
         assert "semantic=" in out["context"]
-        rec = json.loads((isolated_home / "state/grounded-recall/default.jsonl").read_text().splitlines()[-1])
+        rec = json.loads(audit.audit_path(isolated_home).read_text().splitlines()[-1])
         assert rec["semantic"] == "used"
     finally:
         srv.shutdown()
