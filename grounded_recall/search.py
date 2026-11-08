@@ -17,6 +17,7 @@ from typing import Dict, List, Optional, Sequence
 
 from .freshness import RANK, LineInfo, label_file
 from .keywords import fold
+from .note_io import NoteReader
 
 MAX_LINE_CHARS = 2000
 MAX_FILES_SCANNED = 20_000
@@ -69,7 +70,7 @@ class _Kw(str):
     weight: float = 1.0
 
 
-def _weighted(rows: Sequence[tuple], kws: Sequence[str]) -> List[str]:
+def _weighted(rows: Sequence[tuple], kws: Sequence[str], reader: NoteReader) -> List[str]:
     files = {p for p, _ in rows}
     if len(files) < 4:
         return list(kws)
@@ -78,7 +79,7 @@ def _weighted(rows: Sequence[tuple], kws: Sequence[str]) -> List[str]:
     for path in files:
         try:
             if path not in cache:
-                with open(path, encoding="utf-8", errors="replace") as f:
+                with reader.open(path) as f:
                     cache[path] = fold(f.read(200_000))
         except OSError:
             continue
@@ -165,7 +166,7 @@ def _ripgrep(rg: str, roots: Sequence[Path], kws: Sequence[str], include: Sequen
 
 
 def _python_scan(roots: Sequence[Path], kws: Sequence[str], include: Sequence[str],
-                 exclude: Sequence[str], deadline: float) -> List[tuple]:
+                 exclude: Sequence[str], deadline: float, reader: NoteReader) -> List[tuple]:
     rows: List[tuple] = []
     scanned = 0
     for root in roots:
@@ -180,7 +181,7 @@ def _python_scan(roots: Sequence[Path], kws: Sequence[str], include: Sequence[st
                     continue
                 scanned += 1
                 try:
-                    with open(path, encoding="utf-8", errors="replace") as f:
+                    with reader.open(path) as f:
                         for n, line in enumerate(f, 1):
                             if n > 50_000:
                                 break
@@ -209,6 +210,15 @@ def search_roots(roots: Sequence[Path], kws: Sequence[str], *, include: Sequence
                  max_per_file: int = 2, max_age_days: int = 7, use_ripgrep: bool = True,
                  skip_files: Sequence[Path] = ()) -> List[Hit]:
     """Return ranked, de-duplicated hits (CURRENT > UNVERIFIED > HISTORICAL, then score)."""
+    with NoteReader(roots) as reader:
+        return _search_roots(roots, kws, include=include, exclude=exclude, deadline=deadline,
+                             max_hits=max_hits, max_per_file=max_per_file,
+                             max_age_days=max_age_days, use_ripgrep=use_ripgrep,
+                             skip_files=skip_files, reader=reader)
+
+
+def _search_roots(roots, kws, *, include, exclude, deadline, max_hits, max_per_file,
+                  max_age_days, use_ripgrep, skip_files, reader):
     if not roots or not kws or max_hits <= 0:
         return []
     remaining = deadline - time.monotonic()
@@ -219,9 +229,9 @@ def search_roots(roots: Sequence[Path], kws: Sequence[str], *, include: Sequence
     if rg:
         rows = _ripgrep(rg, roots, kws, include, exclude, timeout=remaining)
     if rows is None:
-        rows = _python_scan(roots, kws, include, exclude, deadline)
+        rows = _python_scan(roots, kws, include, exclude, deadline, reader)
     skip = {Path(p).resolve() for p in skip_files if p}
-    kws = _weighted(rows, kws)
+    kws = _weighted(rows, kws, reader)
     cache: Dict[Path, List[LineInfo]] = {}
     hits: List[Hit] = []
     for path, n in rows:
@@ -231,7 +241,7 @@ def search_roots(roots: Sequence[Path], kws: Sequence[str], *, include: Sequence
             if skip and path.resolve() in skip:
                 continue
             if path not in cache:
-                cache[path] = label_file(path, max_age_days=max_age_days)
+                cache[path] = label_file(path, max_age_days=max_age_days, opener=reader.open)
             info = cache[path][n - 1]
         except (OSError, IndexError, UnicodeError):
             continue

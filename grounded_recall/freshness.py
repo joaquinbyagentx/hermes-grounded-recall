@@ -150,8 +150,9 @@ def label_text(text: str, *, archived: bool = False, max_age_days: int = 7,
     return rows
 
 
-def label_file(path: Path, *, max_age_days: int = 7, today: Optional[date] = None) -> List[LineInfo]:
-    with open(path, encoding="utf-8", errors="replace") as f:
+def label_file(path: Path, *, max_age_days: int = 7, today: Optional[date] = None,
+               opener=None) -> List[LineInfo]:
+    with (opener(path) if opener else open(path, encoding="utf-8", errors="replace")) as f:
         text = f.read(MAX_PAGE_BYTES + 1)
     if len(text) > MAX_PAGE_BYTES:
         return []
