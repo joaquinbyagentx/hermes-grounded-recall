@@ -15,9 +15,12 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Any, Callable, List, Optional
+
+from .profile_scope import routed_values
 
 ENV_PREFIX = "GROUNDED_RECALL_"
 
@@ -150,8 +153,9 @@ _UNSET = object()
 
 def load_settings(get_config: Optional[Callable[[str, Any], Any]] = None,
                   environ: Optional[dict] = None) -> Settings:
-    """Build :class:`Settings` from plugin config, env vars and defaults. Never raises."""
-    env = os.environ if environ is None else environ
+    """Build settings; an invalid routed profile scope fails closed."""
+    scoped = routed_values() if environ is None else None
+    env = (os.environ if scoped is None else scoped) if environ is None else environ
     defaults = Settings()
     values = {}
     explicit = set()
@@ -185,7 +189,17 @@ def expand_path(value: str) -> Optional[Path]:
     if not value or not str(value).strip():
         return None
     try:
-        return Path(os.path.expandvars(os.path.expanduser(str(value).strip())))
+        scoped = routed_values()
+        env = os.environ if scoped is None else scoped
+        from .sessions import hermes_home
+        def substitute(match):
+            name = match.group(1) or match.group(2)
+            if name == "HERMES_HOME":
+                return str(hermes_home())
+            return str(env.get(name, match.group(0)))
+        path = re.sub(r"\$\{([^}]+)\}|\$(\w+)", substitute,
+                      os.path.expanduser(str(value).strip()))
+        return Path(path)
     except Exception:
         return None
 

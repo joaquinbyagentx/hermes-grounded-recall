@@ -24,16 +24,15 @@ class SessionHit:
 def hermes_home() -> Path:
     try:
         from hermes_constants import get_hermes_home  # public API
-        return Path(get_hermes_home())
-    except Exception:
+    except ImportError:
         env = os.environ.get("HERMES_HOME", "").strip()
         return Path(env) if env else Path.home() / ".hermes"
+    return Path(get_hermes_home())
 
 
 def profile_name(home: Optional[Path] = None) -> str:
     home = home or hermes_home()
-    m = re.search(r"[/\\]profiles[/\\]([^/\\]+)", str(home))
-    name = m.group(1) if m else "default"
+    name = home.name if home.parent.name == "profiles" else "default"
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", name)[:64] or "default"
 
 

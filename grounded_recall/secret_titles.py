@@ -13,7 +13,9 @@ so a value, password or note can never reach the prompt through this module.
 """
 from __future__ import annotations
 
+import contextvars
 import json
+import os
 import re
 import subprocess
 import threading
@@ -22,6 +24,7 @@ from pathlib import Path
 from typing import Any, List, Optional, Sequence
 
 from .keywords import fold
+from .note_io import NoteReader
 
 MAX_TITLE_CHARS = 120
 MAX_TITLES = 5000
@@ -62,31 +65,53 @@ def titles_from_payload(payload: Any) -> List[str]:
 
 
 def titles_from_text(text: str) -> List[str]:
-    text = (text or "").strip()
+    text = (text or "").lstrip("\ufeff \t\r\n").rstrip()
     if not text:
         return []
     if text[:1] in "[{":
         try:
             return titles_from_payload(json.loads(text))
         except ValueError:
-            pass
+            # JSON-looking output is never interpreted as plaintext titles.
+            return []
     out = [_clean(line) for line in text.splitlines()[:MAX_TITLES]]
     return sorted({t for t in out if t})
 
 
 def read_titles_file(path: Optional[Path]) -> List[str]:
     try:
-        if path is None or not path.is_file() or path.stat().st_size > 5_000_000:
+        if path is None:
             return []
-        return titles_from_text(path.read_text(encoding="utf-8", errors="replace"))
+        with NoteReader([path.parent]) as reader, reader.open(path) as stream:
+            if os.fstat(stream.fileno()).st_size > 5_000_000:
+                return []
+            text = stream.read(5_000_001)
+            return titles_from_text(text) if len(text) <= 5_000_000 else []
     except Exception:
         return []
 
 
-def _run_command(argv: Sequence[str], cache: Path, timeout_s: float) -> None:
+def command_allowed() -> bool:
+    """Vendor CLI identity cannot be inferred from Hermes' context-local secrets.
+
+    Fail closed in routed/multiplexed turns (including their old command cache),
+    or if the host cannot establish scope. Explicit title files still work.
+    """
     try:
+        from agent.secret_scope import serves_routed_profile
+        return not serves_routed_profile()
+    except Exception:
+        return False
+
+
+def _run_command(argv: Sequence[str], cache: Path, timeout_s: float,
+                 environ: Optional[dict] = None) -> None:
+    try:
+        if not command_allowed():
+            return
         proc = subprocess.run(list(argv), capture_output=True, text=True, timeout=timeout_s,
-                              stdin=subprocess.DEVNULL)
+                              stdin=subprocess.DEVNULL,
+                              env=dict(os.environ) if environ is None else environ)
         if proc.returncode == 0:
             titles = titles_from_text(proc.stdout)
             if titles:
@@ -104,7 +129,7 @@ def _run_command(argv: Sequence[str], cache: Path, timeout_s: float) -> None:
 def refresh_in_background(argv: Sequence[str], cache: Path, refresh_hours: float,
                           timeout_s: float) -> Optional[threading.Thread]:
     """Start a background refresh when the cache is missing or stale. Never blocks."""
-    if not argv:
+    if not argv or not command_allowed():
         return None
     try:
         fresh = cache.exists() and time.time() - cache.stat().st_mtime < refresh_hours * 3600
@@ -116,9 +141,17 @@ def refresh_in_background(argv: Sequence[str], cache: Path, refresh_hours: float
         if str(cache) in _refreshing:
             return None
         _refreshing.add(str(cache))
-    t = threading.Thread(target=_run_command, args=(list(argv), cache, max(1.0, timeout_s)),
+    context = contextvars.copy_context()
+    env = dict(os.environ)  # snapshot the permitted single-profile caller, not a later turn
+    t = threading.Thread(target=context.run,
+                         args=(_run_command, list(argv), cache, max(1.0, timeout_s), env),
                          name="grounded-recall-secret-titles", daemon=True)
-    t.start()
+    try:
+        t.start()
+    except Exception:
+        with _refresh_lock:
+            _refreshing.discard(str(cache))
+        return None
     return t
 
 

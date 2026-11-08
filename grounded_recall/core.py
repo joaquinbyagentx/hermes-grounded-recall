@@ -1,7 +1,9 @@
 """grounded-recall: the per-turn recall hook and the key-facts system prompt section."""
 from __future__ import annotations
 
+import contextvars
 import logging
+import os
 import re
 import threading
 import time
@@ -12,7 +14,8 @@ from .config import DEFAULT_RULE, Settings, existing_roots, expand_path, load_se
 from .freshness import RANK
 from .keywords import extract_keywords, message_text, strip_transport
 from .search import search_roots
-from .sessions import search_sessions
+from .note_io import NoteReader
+from .sessions import hermes_home, search_sessions
 
 log = logging.getLogger(__name__)
 
@@ -27,14 +30,19 @@ class GroundedRecall:
         self._get_config = get_config
         self._environ = environ
         self._settings: Optional[Settings] = None
+        self._settings_home = None
         self._loaded_at = 0.0
         self._lock = threading.Lock()
+        self._worker_slot = threading.BoundedSemaphore(1)
 
     # -- settings ------------------------------------------------------------------------------
     def settings(self) -> Settings:
+        home = hermes_home()
         with self._lock:
-            if self._settings is None or time.monotonic() - self._loaded_at > _SETTINGS_TTL_S:
+            if (self._settings is None or self._settings_home != home
+                    or time.monotonic() - self._loaded_at > _SETTINGS_TTL_S):
                 self._settings = load_settings(self._get_config, self._environ)
+                self._settings_home = home
                 self._loaded_at = time.monotonic()
             return self._settings
 
@@ -46,9 +54,14 @@ class GroundedRecall:
     def key_facts_body(self, s: Settings) -> str:
         path = expand_path(s.key_facts_file)
         try:
-            if path is None or not path.is_file() or path.stat().st_size > 2_000_000:
+            if path is None:
                 return ""
-            text = path.read_text(encoding="utf-8", errors="replace")
+            with NoteReader([path.parent]) as reader, reader.open(path) as stream:
+                if os.fstat(stream.fileno()).st_size > 2_000_000:
+                    return ""
+                text = stream.read(2_000_001)
+                if len(text) > 2_000_000:
+                    return ""
         except Exception:
             return ""
         heading = s.key_facts_heading.strip()
@@ -84,13 +97,17 @@ class GroundedRecall:
     # -- per-turn recall -----------------------------------------------------------------------
     def recall(self, session_id: str = "", user_message: Any = "", conversation_history: Any = None,
                **_kwargs: Any) -> Optional[Dict[str, str]]:
-        """``pre_llm_call`` hook. Returns ``{"context": ...}`` or None. Never raises, never
-        blocks longer than ``min(time_budget_ms + 300ms, 1.5 s)``."""
+        """``pre_llm_call`` hook. Returns ``{"context": ...}`` or None.
+        Worker wait is capped at ``min(time_budget_ms + 300ms, 1.5 s)``;
+        configuration and audit I/O are not a real-time guarantee."""
         try:
             s = self.settings()
             if not s.enabled:
                 return None
         except Exception:
+            return None
+        # A timed-out daemon must not accumulate one more worker every turn.
+        if not self._worker_slot.acquire(blocking=False):
             return None
         box: Dict[str, Any] = {}
         started = time.monotonic()
@@ -103,9 +120,16 @@ class GroundedRecall:
             except Exception:
                 log.debug("grounded-recall failed", exc_info=True)
                 box["result"] = None
+            finally:
+                self._worker_slot.release()
 
-        t = threading.Thread(target=work, name="grounded-recall", daemon=True)
-        t.start()
+        context = contextvars.copy_context()
+        t = threading.Thread(target=context.run, args=(work,), name="grounded-recall", daemon=True)
+        try:
+            t.start()
+        except Exception:
+            self._worker_slot.release()
+            return None
         t.join(limit)
         if t.is_alive():
             if s.audit_log:
@@ -158,12 +182,13 @@ class GroundedRecall:
         if s.secret_titles_file or s.secret_titles_command:
             sources.append(s.secret_manager_label)
             cache = audit.state_dir() / "secret-titles.json"
-            if s.secret_titles_command:
+            command_allowed = bool(s.secret_titles_command) and secret_titles.command_allowed()
+            if command_allowed:
                 secret_titles.refresh_in_background(s.secret_titles_command, cache,
                                                     s.secret_titles_refresh_hours,
                                                     s.secret_titles_command_timeout_s)
             pool_titles = set(secret_titles.read_titles_file(expand_path(s.secret_titles_file)))
-            if s.secret_titles_command:
+            if command_allowed:
                 pool_titles |= set(secret_titles.read_titles_file(cache))
             titles = secret_titles.match_titles(sorted(pool_titles), kws, s.max_secret_hits)
 
