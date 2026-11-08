@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import json
 import math
-import os
 import urllib.request
 from typing import List, Optional, Sequence
+
+from .profile_scope import routed_values
 
 MAX_TIMEOUT_S = 1.5
 
@@ -24,11 +25,17 @@ MAX_TIMEOUT_S = 1.5
 def _api_key(env_name: str) -> str:
     if not env_name:
         return ""
-    try:
-        from agent.secret_scope import get_secret  # public, profile-aware
-        return get_secret(env_name) or ""
-    except Exception:
-        return os.environ.get(env_name, "")
+    scoped = routed_values()
+    if scoped is not None:
+        return scoped.get(env_name) or ""
+    from agent.secret_scope import get_secret
+    return get_secret(env_name) or ""
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """An embeddings endpoint must never forward credentials to another origin."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
 def _endpoint(url: str) -> str:
@@ -44,12 +51,13 @@ def embed(texts: Sequence[str], *, url: str, model: str, timeout_s: float,
         return None
     body = json.dumps({"model": model, "input": [t[:2000] for t in texts]}).encode()
     headers = {"Content-Type": "application/json", "User-Agent": "hermes-grounded-recall"}
-    key = _api_key(api_key_env)
-    if key:
-        headers["Authorization"] = "Bearer " + key
     try:
+        key = _api_key(api_key_env)
+        if key:
+            headers["Authorization"] = "Bearer " + key
         req = urllib.request.Request(_endpoint(url), data=body, headers=headers, method="POST")
-        with urllib.request.urlopen(req, timeout=max(0.05, min(MAX_TIMEOUT_S, timeout_s))) as resp:
+        opener = urllib.request.build_opener(_NoRedirect())
+        with opener.open(req, timeout=max(0.05, min(MAX_TIMEOUT_S, timeout_s))) as resp:
             payload = json.loads(resp.read(20_000_000))
         data = payload.get("data")
         if not isinstance(data, list) or len(data) != len(texts):
