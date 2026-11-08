@@ -1,10 +1,7 @@
-# DRAFT catalog entry. Copy to NousResearch/hermes-agent:plugin-catalog/grounded-recall.yaml
-# TODO before PR: replace repo, sha, maintainer, docs_url; confirm capabilities vs.
-# `hermes plugins validate` output; set requires_hermes to the same floor as plugin.yaml.
 name: grounded-recall
 title: Grounded Recall
-repo: https://github.com/TODO-OWNER/hermes-grounded-recall
-sha: "0000000000000000000000000000000000000000"  # TODO real pin
+repo: https://github.com/joaquinbyagentx/hermes-grounded-recall
+sha: "6c11dcb44840b9a9a0edeb544e439e5037951569"
 version: "1.0.0"
 description: >-
   Before every model turn, searches your existing markdown notes (plain folders or an
@@ -17,11 +14,11 @@ description: >-
   search is enabled it runs the secret manager's CLI to list item titles only; writes an
   audit log under the active Hermes home. No network calls, no telemetry, no background
   process.
-maintainer: TODO-github-handle
+maintainer: joaquinbyagentx
 tier: community
 category: memory
-requires_hermes: ">=0.23.0"
-docs_url: https://github.com/TODO-OWNER/hermes-grounded-recall#readme
+requires_hermes: ">=0.22.0"
+docs_url: https://github.com/joaquinbyagentx/hermes-grounded-recall#readme
 platforms: []
 capabilities:
   provides_tools: []
@@ -30,4 +27,4 @@ capabilities:
   provides_middleware: []
   requires_env: []
 known_issues:
-  - With no knowledge_dirs configured it only searches sessions; add a notes folder for useful results.
+  - With no roots configured it only searches sessions; add a notes folder for useful results.
