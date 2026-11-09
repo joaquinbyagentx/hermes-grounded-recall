@@ -186,7 +186,8 @@ class GroundedRecall:
             if command_allowed:
                 secret_titles.refresh_in_background(s.secret_titles_command, cache,
                                                     s.secret_titles_refresh_hours,
-                                                    s.secret_titles_command_timeout_s)
+                                                    s.secret_titles_command_timeout_s,
+                                                    s.secret_titles_env)
             pool_titles = set(secret_titles.read_titles_file(expand_path(s.secret_titles_file)))
             if command_allowed:
                 pool_titles |= set(secret_titles.read_titles_file(cache))

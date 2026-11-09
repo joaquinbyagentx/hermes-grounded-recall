@@ -63,6 +63,9 @@ class Settings:
     # Secret-manager item TITLES (never values).
     secret_titles_file: str = ""
     secret_titles_command: List[str] = field(default_factory=list)
+    # Extra environment variable NAMES the CLI may see (e.g. OP_SESSION_my, BW_SESSION).
+    # The CLI otherwise gets only PATH/HOME/USER/LANG-style basics.
+    secret_titles_env: List[str] = field(default_factory=list)
     secret_titles_refresh_hours: float = 24.0
     secret_titles_command_timeout_s: float = 20.0
     max_secret_hits: int = 8

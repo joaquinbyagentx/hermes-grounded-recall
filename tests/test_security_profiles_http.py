@@ -205,7 +205,7 @@ def test_title_command_refuses_unknown_scope(tmp_path, monkeypatch, host):
     assert not (tmp_path / "cache.json").exists()
 
 
-def test_single_profile_title_command_preserves_context_and_environment(tmp_path, monkeypatch, host):
+def test_single_profile_title_command_preserves_context_and_named_environment(tmp_path, monkeypatch, host):
     from contextvars import ContextVar
     marker = ContextVar("title-command-marker", default="lost")
     monkeypatch.setenv("SYNTHETIC_VENDOR_ACCOUNT", "single-profile")
@@ -220,7 +220,7 @@ def test_single_profile_title_command_preserves_context_and_environment(tmp_path
     try:
         thread = secret_titles.refresh_in_background(
             [sys.executable, "-I", "-B", "-c", "import os,json; print(json.dumps(['orchidplan '+os.environ['SYNTHETIC_VENDOR_ACCOUNT']]))"],
-            cache, 24, 2)
+            cache, 24, 2, ["SYNTHETIC_VENDOR_ACCOUNT"])  # explicit passthrough only
         assert thread is not None
         thread.join(3)
         assert not thread.is_alive()
@@ -364,3 +364,31 @@ def test_timed_out_worker_keeps_its_scope_and_does_not_accumulate(tmp_path, monk
     result = e.recall(user_message="orchidplan")
     assert result is not None and "No automatic matches" in result["context"]
     assert calls == [True, True] and homes == [b, a]
+
+
+def test_secret_titles_cli_gets_allowlisted_env_only(tmp_path, monkeypatch):
+    """A vendor CLI must never inherit provider API keys (review on PR #150965)."""
+    import json as _json
+    import sys as _sys
+    from grounded_recall import secret_titles
+
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-sentinel-not-a-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sentinel-not-a-key")
+    monkeypatch.setenv("BW_SESSION", "session-sentinel")
+    monkeypatch.setattr(secret_titles, "command_allowed", lambda: True)
+    dump = tmp_path / "env.json"
+    script = tmp_path / "cli.py"
+    script.write_text(
+        "import json, os, sys\n"
+        f"json.dump(dict(os.environ), open({str(dump)!r}, 'w'))\n"
+        "print('[{\"title\": \"vault/item\"}]')\n", encoding="utf-8")
+    cache = tmp_path / "cache.json"
+    t = secret_titles.refresh_in_background([_sys.executable, str(script)], cache, 24.0, 10.0,
+                                            ["BW_SESSION"])
+    assert t is not None
+    t.join(15)
+    seen = _json.loads(dump.read_text(encoding="utf-8"))
+    assert "OPENAI_API_KEY" not in seen and "ANTHROPIC_API_KEY" not in seen
+    assert seen.get("BW_SESSION") == "session-sentinel"
+    assert set(seen) <= set(secret_titles.BASE_ENV_KEYS) | {"BW_SESSION", "__CF_USER_TEXT_ENCODING", "PWD"}
+    assert _json.loads(cache.read_text(encoding="utf-8")) == ["vault/item"]

@@ -104,6 +104,20 @@ def command_allowed() -> bool:
         return False
 
 
+# Variables a secret-manager CLI needs to run at all. Everything else (provider API
+# keys, tokens, HERMES_* state) is withheld; vendor session variables must be
+# named explicitly in ``secret_titles_env``.
+BASE_ENV_KEYS = ("PATH", "HOME", "USER", "LOGNAME", "SHELL", "LANG", "LC_ALL", "LC_CTYPE",
+                 "TMPDIR", "TERM", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR")
+
+
+def minimal_env(passthrough: Sequence[str] = (), source: Optional[dict] = None) -> dict:
+    """Allowlisted environment for the vendor CLI: base keys + explicit passthrough."""
+    src = os.environ if source is None else source
+    keep = set(BASE_ENV_KEYS) | {str(k).strip() for k in passthrough if str(k).strip()}
+    return {k: src[k] for k in keep if k in src}
+
+
 def _run_command(argv: Sequence[str], cache: Path, timeout_s: float,
                  environ: Optional[dict] = None) -> None:
     try:
@@ -111,7 +125,7 @@ def _run_command(argv: Sequence[str], cache: Path, timeout_s: float,
             return
         proc = subprocess.run(list(argv), capture_output=True, text=True, timeout=timeout_s,
                               stdin=subprocess.DEVNULL,
-                              env=dict(os.environ) if environ is None else environ)
+                              env=minimal_env() if environ is None else environ)
         if proc.returncode == 0:
             titles = titles_from_text(proc.stdout)
             if titles:
@@ -127,7 +141,8 @@ def _run_command(argv: Sequence[str], cache: Path, timeout_s: float,
 
 
 def refresh_in_background(argv: Sequence[str], cache: Path, refresh_hours: float,
-                          timeout_s: float) -> Optional[threading.Thread]:
+                          timeout_s: float,
+                          env_passthrough: Sequence[str] = ()) -> Optional[threading.Thread]:
     """Start a background refresh when the cache is missing or stale. Never blocks."""
     if not argv or not command_allowed():
         return None
@@ -142,7 +157,9 @@ def refresh_in_background(argv: Sequence[str], cache: Path, refresh_hours: float
             return None
         _refreshing.add(str(cache))
     context = contextvars.copy_context()
-    env = dict(os.environ)  # snapshot the permitted single-profile caller, not a later turn
+    # Snapshot now (the permitted single-profile caller, not a later turn), allowlisted:
+    # never hand provider API keys to a vendor binary.
+    env = minimal_env(env_passthrough)
     t = threading.Thread(target=context.run,
                          args=(_run_command, list(argv), cache, max(1.0, timeout_s), env),
                          name="grounded-recall-secret-titles", daemon=True)

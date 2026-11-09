@@ -113,8 +113,11 @@ prints values in the first place:
 Commands and their old cached output are disabled in routed/multiplexed turns,
 or when Hermes cannot establish the execution scope: a vendor CLI's login cannot
 be inferred safely from Hermes' per-profile secrets. Use an explicit
-`secret_titles_file` for those turns. Single-profile commands retain their existing
-environment and run with a snapshot of the caller's context. JSON-looking output,
+`secret_titles_file` for those turns. Single-profile commands run with a snapshot
+of the caller's context but a **minimal environment**: only `PATH`, `HOME`, `USER`,
+`LANG`-style basics. Provider API keys are never passed to the vendor binary. If your
+CLI needs a session variable, name it explicitly, e.g.
+`secret_titles_env: [OP_SESSION_my, BW_SESSION]` (names only; values stay in your env). JSON-looking output,
 including UTF-8 BOM-prefixed output, is rejected if malformed, never read as plaintext.
 
 | Manager | `secret_titles_command` |
