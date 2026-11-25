@@ -53,6 +53,9 @@ DATE_RE = re.compile(
     r"|\b" + _MON + r" \d{1,2}(?:st|nd|rd|th)?(?:,? 20\d\d)?\b", re.I)
 
 
+_CALLOUT = re.compile(r"^>\s*\[!(\w+)\][+-]?")
+
+
 class LineInfo(NamedTuple):
     text: str
     label: str
@@ -111,9 +114,18 @@ def label_text(text: str, *, archived: bool = False, max_age_days: int = 7,
             stack = [h for h in stack if h[0] < level]
             block = None
         parent_history = archived or any(h[1] == HISTORICAL for h in stack)
-        historical = parent_history or bool(_HISTORY.search(low))
         plain = re.sub(r"^[\s>*_#-]+|[\s:*_]+$", "", low)
-        quoted = line.startswith(">") or fenced
+        # An Obsidian callout (``> [!note] ...``) reuses blockquote syntax but is the author's own
+        # admonition, not quoted material, so it may assert current state: without this,
+        # "> [!info] Current state (2026-05-20)" is inexpressible and only a heading can carry the
+        # marker. A callout never self-demotes to HISTORICAL — an admonition exists to be read, and
+        # ranking it last would bury the page's own supersession warning — but it still inherits
+        # HISTORICAL from an archived page or section.
+        callout = bool(_CALLOUT.match(line)) if not fenced else False
+        if callout:
+            plain = re.sub(r"^\[!\w+\][+-]?\s*", "", plain)
+        historical = parent_history or (not callout and bool(_HISTORY.search(low)))
+        quoted = (line.startswith(">") and not callout) or fenced
         marker = bool(_CURRENT.search(low))
         top_current = (marker and not primary_seen and len(stack) <= 1
                        and bool(_CURRENT_START.match(plain)))

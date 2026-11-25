@@ -95,6 +95,33 @@ def test_quoted_current_marker_is_not_current():
     assert rows[0].label == UNVERIFIED
 
 
+def test_obsidian_callout_may_assert_current_state():
+    """An Obsidian callout is the author's own admonition, not quoted material."""
+    rows = label_text(f"# Host\n\n> [!info] Current state ({RECENT})\n> IPS enabled.\n", max_age_days=7)
+    assert rows[2].label == CURRENT
+    # ...but only when its date is fresh, like any other current marker.
+    stale = label_text(f"# Host\n\n> [!info] Current state ({OLD})\n> IPS enabled.\n", max_age_days=7)
+    assert stale[2].label == UNVERIFIED
+    # Fold markers are part of the callout syntax.
+    folded = label_text(f"# Host\n\n> [!info]- Current state ({RECENT})\n", max_age_days=7)
+    assert folded[2].label == CURRENT
+
+
+def test_obsidian_callout_never_self_demotes_to_historical():
+    """A supersession warning exists to be read; ranking it last would bury it."""
+    rows = label_text("# Note\n\n> [!warning] raw archive moved out, superseded\n", max_age_days=7)
+    assert rows[2].label == UNVERIFIED
+    # It still inherits HISTORICAL from an archived page.
+    archived = label_text(f"# Note\n\n> [!info] Current state ({RECENT})\n",
+                          archived=True, max_age_days=7)
+    assert archived[2].label == HISTORICAL
+
+
+def test_callout_syntax_inside_fence_is_not_a_callout():
+    rows = label_text(f"# Note\n\n```\n> [!info] Current state ({RECENT})\n```\n", max_age_days=7)
+    assert all(r.label != CURRENT for r in rows)
+
+
 # ---------------------------------------------------------------- search (rg + python fallback)
 @pytest.mark.parametrize("use_rg", [True, False])
 def test_search_ranks_current_first_and_labels(tmp_path, use_rg):
